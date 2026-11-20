@@ -8,6 +8,8 @@ __pycache__/
 data/
 
 docs/AI回忆录/
+docs/todoList/
+
 
 *.log
 *.err
@@ -23,3 +25,4 @@ scripts/_*.py
 Thumbs.db
 
 Microsoft/
+
