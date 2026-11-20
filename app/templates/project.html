@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}{{ project.title }} · 编辑台{% endblock %}
+{% block main_class %}page page-project{% endblock %}
+{% block topnav %}
+<a class="btn btn-ghost" href="/interview/{{ project.token }}" target="_blank">打开访谈页</a>
+<a class="btn btn-ghost" href="/book/{{ project.token }}" target="_blank">预览成书</a>
+{% endblock %}
+
+{% block content %}
+<section class="project-head">
+  <div>
+    <p class="hero-eyebrow">编辑台</p>
+    <h1>{{ project.title }}</h1>
+    <p class="muted">
+      讲述者：{{ project.narrator_name }}
+      {% if project.interviewer_name %} · 记录者：{{ project.interviewer_name }}{% endif %}
+    </p>
+    {% if project.dedication %}<p class="dedication">「{{ project.dedication }}」</p>{% endif %}
+  </div>
+  <div class="head-actions">
+    <a class="btn btn-primary" href="/book/{{ project.token }}" target="_blank">预览成书</a>
+    <a class="btn btn-ghost" href="/book/{{ project.token }}/pdf">导出 PDF</a>
+  </div>
+</section>
+
+<section class="card share-card">
+  <h2 class="card-title">把这条链接发给长辈</h2>
+  <p class="muted">长辈点开后，用语音回答问题即可，不需要安装任何 App。</p>
+  <div class="share-row">
+    <input class="share-input" id="share-link" type="text" readonly
+           value="{{ request.base_url }}interview/{{ project.token }}">
+    <button class="btn btn-primary" id="copy-link" type="button">复制</button>
+  </div>
+</section>
+
+<section class="card metrics-card" id="metrics-card" data-token="{{ project.token }}">
+  <div class="metrics-ring-wrap">
+    <svg class="metrics-ring" viewBox="0 0 120 120" role="img" aria-label="主题覆盖进度">
+      <circle class="ring-track" cx="60" cy="60" r="50"></circle>
+      <circle class="ring-fill" cx="60" cy="60" r="50"
+              stroke-dasharray="{{ (314 * metrics.percent / 100) | round(1) }} 314"></circle>
+    </svg>
+    <div class="metrics-ring-text">
+      <strong data-metric="percent">{{ metrics.percent }}%</strong>
+      <span><span data-metric="covered">{{ metrics.covered_topics }}</span> / {{ metrics.topic_total }} 个主题</span>
+    </div>
+  </div>
+  <div class="metrics-list">
+    <div class="metric">
+      <strong data-metric="story_count">{{ metrics.story_count }}</strong>
+      <span>段故事</span>
+    </div>
+    <div class="metric">
+      <strong data-metric="minutes">{{ metrics.minutes }}</strong>
+      <span>分钟口述</span>
+    </div>
+    <div class="metric">
+      <strong data-metric="total_chars">{{ metrics.total_chars }}</strong>
+      <span>字</span>
+    </div>
+    <div class="metric">
+      <strong data-metric="audio_count">{{ metrics.audio_count }}</strong>
+      <span>段原声</span>
+    </div>
+    <div class="metric">
+      <strong data-metric="change_total">{{ metrics.change_total }}</strong>
+      <span>处润色改动</span>
+    </div>
+  </div>
+  <p class="metrics-note muted">
+    时长按口述语速估算。点开每段故事里的「看看改了什么」，能看到 AI 到底动了哪几个字。
+  </p>
+</section>
+
+<section class="section">
+  <h2 class="section-title">故事进度</h2>
+  <div class="grid grid-topic">
+    {% for s in stats %}
+    <div class="card stat-card {% if s.count %}stat-done{% endif %}">
+      <span class="stat-emoji">{{ s.emoji }}</span>
+      <h3>{{ s.name }}</h3>
+      <p class="muted">{{ s.subtitle }}</p>
+      <p class="stat-count">{{ s.count }} 段</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section">
+  <h2 class="section-title">已收录的故事</h2>
+  {% if not project.stories %}
+  <div class="empty">
+    <p>还没有故事。把上面的链接发给长辈，让他从最简单的那个问题开始讲。</p>
+  </div>
+  {% endif %}
+
+  <div class="story-list">
+    {% for item in views %}
+    {% set story = item.story %}
+    <article class="card story-card" data-story-id="{{ story.id }}"
+             data-raw="{{ story.raw_text }}">
+      <header class="story-head">
+        <span class="tag">{{ topic_names.get(story.topic, story.topic) }}</span>
+        <h3 class="story-question">{{ story.question or '（自由讲述）' }}</h3>
+        <span class="story-time muted">{{ story.created_at.strftime('%m-%d %H:%M') if story.created_at else '' }}</span>
+      </header>
+
+      {% if item.audio_url %}
+      <div class="story-audio" data-audio-player>
+        <button class="audio-toggle" type="button" data-audio-toggle aria-label="播放原声">
+          <span class="audio-icon-play"></span>
+          <span class="audio-icon-pause"></span>
+        </button>
+        <div class="audio-main">
+          <span class="story-audio-label">原声</span>
+          <div class="audio-track" data-audio-track tabindex="0" role="slider"
+               aria-label="原声播放进度">
+            <span class="audio-rail"></span>
+            <span class="audio-progress" data-audio-progress></span>
+            <span class="audio-knob" data-audio-knob></span>
+          </div>
+        </div>
+        <span class="audio-time" data-audio-time>0:00 / 0:00</span>
+        <audio preload="metadata" src="{{ item.audio_url }}"></audio>
+      </div>
+      {% endif %}
+
+      {% if item.diff.has_change %}
+      <details class="diff-box">
+        <summary>{{ item.summary }} · 看看改了什么</summary>
+        {% if item.diff.spans %}
+        <div class="diff-ribbon" title="改动在全文里的位置">
+          {% for sp in item.diff.spans %}
+          <span class="diff-tick" style="left: {{ '%.2f' % (sp.start / (item.diff.length or 1) * 100) }}%; width: {{ '%.2f' % ((sp.end - sp.start) / (item.diff.length or 1) * 100) if (sp.end - sp.start) > 0 else 0.6 }}%"></span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <div class="diff-body" data-diff-body>
+          {% for seg in item.diff.segments %}
+            {% if seg.kind == 'same' %}<span>{{ seg.text }}</span>
+            {% elif seg.kind == 'add' %}<ins class="diff-add">{{ seg.text }}</ins>
+            {% else %}<del class="diff-del">{{ seg.text }}</del>{% endif %}
+          {% endfor %}
+        </div>
+        <div class="diff-tools">
+          <p class="diff-legend muted">
+            <ins class="diff-add">加粗下划线</ins> = AI 新增，<del class="diff-del">删除线</del> = AI 删掉的原话。
+            不满意就点「还是用我的原话」。
+          </p>
+          <button class="btn btn-sm diff-only" type="button" data-action="diff-only"
+                  data-mode="full">只看改动</button>
+        </div>
+      </details>
+      {% else %}
+      <p class="diff-none muted">{{ item.summary }}</p>
+      {% endif %}
+
+      <textarea class="story-editor" rows="8">{{ story.polished_text or story.raw_text }}</textarea>
+
+      <footer class="story-actions">
+        <button class="btn btn-sm" data-action="save">保存修改</button>
+        <button class="btn btn-sm" data-action="repolish">重新润色</button>
+        <button class="btn btn-sm" data-action="vivid">让这段更生动</button>
+        <button class="btn btn-sm" data-action="followup">追问建议</button>
+        {% if item.diff.has_change %}
+        <button class="btn btn-sm" data-action="restore-raw">还是用我的原话</button>
+        {% endif %}
+        <button class="btn btn-sm btn-danger" data-action="delete">删除</button>
+        <span class="story-status muted" data-status></span>
+      </footer>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section">
+  <h2 class="section-title">老照片</h2>
+  <p class="muted">照片会自动穿插到成书的各个章节里。MVP 阶段先不做修复上色。</p>
+  <form class="photo-form" id="photo-form" data-token="{{ project.token }}">
+    <input type="file" name="file" accept="image/*" required>
+    <input type="text" name="caption" placeholder="照片说明，比如：1985 年全家福">
+    <button class="btn btn-sm btn-primary" type="submit">上传</button>
+  </form>
+  <div class="photo-grid" id="photo-grid">
+    {% for photo in project.photos %}
+    <div class="photo-item" data-photo-id="{{ photo.id }}">
+      <img src="/media/photos/{{ photo.filename }}" alt="{{ photo.caption }}">
+      <p class="muted">{{ photo.caption }}</p>
+      <button class="btn btn-xs btn-danger" data-action="delete-photo">移除</button>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ asset_url('js/project.js') }}"></script>
+{% endblock %}

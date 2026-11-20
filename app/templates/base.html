@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>{% block title %}{{ brand_name }} · {{ brand_en }}{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%A7%83%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <header class="topbar">
+    <a class="brand" href="/">
+      <span class="brand-mark">🧃</span>
+      <span class="brand-text">
+        <strong>{{ brand_name }}</strong>
+        <em>{{ brand_slogan }}</em>
+      </span>
+    </a>
+    <nav class="topnav">{% block topnav %}{% endblock %}</nav>
+  </header>
+
+  <main class="{% block main_class %}page{% endblock %}">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block footer %}
+  <footer class="footer">
+    <p>{{ brand_name }}（{{ brand_en }}）· 把长辈的口述榨成一本可以传下去的书</p>
+  </footer>
+  {% endblock %}
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="{{ asset_url('js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

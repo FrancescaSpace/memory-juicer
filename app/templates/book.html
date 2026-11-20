@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}{{ project.title }} · 成书预览{% endblock %}
+{% block body_class %}{% if print_mode %}print-mode{% endif %}{% endblock %}
+{% block main_class %}page page-book{% endblock %}
+{% block topnav %}
+{% if not print_mode %}
+<a class="btn btn-ghost" href="/project/{{ project.token }}">回到编辑台</a>
+<a class="btn btn-ghost" href="/book/{{ project.token }}/pdf">导出 PDF</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{% if not print_mode %}
+<section class="book-toolbar">
+  <div>
+    <h1>{{ project.title }}</h1>
+    <p class="muted">{{ book.story_count }} 段故事 · 约 {{ book.total_chars }} 字</p>
+  </div>
+  <div class="book-nav">
+    <button class="btn btn-sm" id="prev-page" type="button">上一页</button>
+    <span class="page-indicator" id="page-indicator">1 / 1</span>
+    <button class="btn btn-sm" id="next-page" type="button">下一页</button>
+  </div>
+</section>
+{% endif %}
+
+{% if not book.has_content %}
+<div class="empty"><p>这本书还没有内容，先去让长辈讲几句吧。</p></div>
+{% else %}
+<div class="book-stage">
+  <div class="book-pages" id="book-pages">
+    <section class="page-sheet cover-page">
+      <p class="cover-brand">{{ brand_name }}</p>
+      <h1 class="cover-title">{{ project.title }}</h1>
+      <p class="cover-narrator">口述：{{ project.narrator_name }}</p>
+      {% if project.interviewer_name %}
+      <p class="cover-recorder">整理：{{ project.interviewer_name }}</p>
+      {% endif %}
+      {% if project.dedication %}
+      <p class="cover-dedication">「{{ project.dedication }}」</p>
+      {% endif %}
+    </section>
+
+    {% for chapter in book.chapters %}
+    <section class="page-sheet chapter-page">
+      <header class="chapter-head">
+        <span class="chapter-emoji">{{ chapter.emoji }}</span>
+        <h2>{{ chapter.name }}</h2>
+        <p class="chapter-sub">{{ chapter.subtitle }}</p>
+      </header>
+
+      {% for item in chapter.stories %}
+      {% set story = item.story %}
+      <div class="story-block">
+        {% if story.question %}
+        <p class="story-question">问：{{ story.question }}</p>
+        {% endif %}
+        <div class="story-body">{{ story.display_text }}</div>
+        {% if item.audio_url %}
+        <div class="book-audio" data-audio-player>
+          <button class="audio-toggle" type="button" data-audio-toggle aria-label="播放原声">
+            <span class="audio-icon-play"></span>
+            <span class="audio-icon-pause"></span>
+          </button>
+          <div class="audio-main">
+            <span class="book-audio-label">原声</span>
+            <div class="audio-track" data-audio-track tabindex="0" role="slider"
+                 aria-label="原声播放进度">
+              <span class="audio-rail"></span>
+              <span class="audio-progress" data-audio-progress></span>
+              <span class="audio-knob" data-audio-knob></span>
+            </div>
+          </div>
+          <span class="audio-time" data-audio-time>0:00 / 0:00</span>
+          <audio preload="metadata" src="{{ item.audio_url }}"></audio>
+        </div>
+        {% endif %}
+        {% if item.summary %}
+        <p class="book-fidelity">整理说明：{{ item.summary }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      {% for photo in chapter.photos %}
+      <figure class="book-photo">
+        <img src="/media/photos/{{ photo.filename }}" alt="{{ photo.caption }}">
+        {% if photo.caption %}<figcaption>{{ photo.caption }}</figcaption>{% endif %}
+      </figure>
+      {% endfor %}
+    </section>
+    {% endfor %}
+
+    <section class="page-sheet ending-page">
+      <p class="ending-sign">{{ book.signature }}</p>
+      <p class="ending-date">记录于 {{ book.generated_at.strftime('%Y 年 %m 月 %d 日') }}</p>
+      <p class="ending-mark">{{ brand_en }}</p>
+    </section>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if not print_mode %}<script src="{{ asset_url('js/book.js') }}"></script>{% endif %}
+{% endblock %}
